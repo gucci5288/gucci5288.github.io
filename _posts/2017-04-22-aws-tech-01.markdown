@@ -1,27 +1,36 @@
 ---
 layout: post
-title:  "Mac 使用 Amazon Web Service , EC2, Ubuntu, Docker 快速建立 Wordpress網站"
+title:  "使用 AWS(EC2), Docker 快速建立 WORDPRESS網站"
 date:   2017-04-22 11:42:00 +0800
 categories: jekyll update
 ---
-前置作業:
+
+前置作業
+---------
+
 已經申請好 Amazon Web Service 的EC2服務，並在EC2上裝好Ubuntu
 
 準備好EC2的金鑰，本文範例金鑰 : my_aws_key.pem ( 請替換成你的金鑰名稱)
 
 把金鑰放到等等要下指令的目錄
 
+連線到AWS
+---------
+
+先開啟mac terminal
+
+連線到Amazon Web Service 的虛擬主機
+
+> 本文範例主機位置 : ubuntu@ec2-xx-xx-xx-xxx.us-west-2.compute.amazonaws.com( 請替換成你的DNS名稱)
+
+```sh
+$ sudo ssh -i "my_aws_key.pem" ubuntu@ec2-xx-xx-xx-xxx.us-west-2.compute.amazonaws.com
+```
 
 
-1.先開啟mac terminal
+如果連線後遇到此錯誤 , 代表你的金鑰權限設定不正確
 
-2.連線到Amazon Web Service 的虛擬主機
-
-本文範例主機位置 : ubuntu@ec2-xx-xx-xx-xxx.us-west-2.compute.amazonaws.com( 請替換成你的DNS名稱)
-sudo ssh -i "my_aws_key.pem" ubuntu@ec2-xx-xx-xx-xxx.us-west-2.compute.amazonaws.com
-
-
-如果連線後遇到此錯誤
+```sh
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
  WARNING: UNPROTECTED PRIVATE KEY FILE!
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -30,71 +39,113 @@ It is required that your private key files are NOT accessible by others.
 This private key will be ignored.
 Load key "my_aws_key.pem": bad permissions
 Permission denied (publickey).
-
-代表你的金鑰權限設定不正確
+```
 
 輸入以下指令更改金鑰權限後，再次連線
-sudo chmod 400 my_aws_key.pem
+
+```sh
+$ sudo chmod 400 my_aws_key.pem
+```
+
+順利連線到到Amazon Web Service 的虛擬主機後
 
 
-
-3.順利連線到到Amazon Web Service 的虛擬主機後
+Docker
+------
 
 安裝 Docker
-wget -qO- https://get.docker.com/ | sh
+```sh
+$ wget -qO- https://get.docker.com/ | sh
+```
 
 設定 Docker權限
-sudo usermod -aG docker $(whoami)
+```sh
+$ sudo usermod -aG docker $(whoami)
+```
 
 安裝 Docker Compose 需要的前置軟體
-sudo apt-get -y install python-pip
+```sh
+$ sudo apt-get -y install python-pip
+```
 
 安裝 Docker Compose
-sudo pip install docker-compose
+
+```sh
+$ sudo pip install docker-compose
+```
 
 
-
-4.(選項，不一定要做）測試Docker與Docker Compose是否安裝成功
+測試Docker與Docker Compose是否安裝成功
+------
 
 先建立資料夾給我們的 YAML 檔案
-mkdir hello-world
-
+```sh
+$ mkdir hello-world
+```
 
 進入資料夾
-cd hello-world
-
+```sh
+$ cd hello-world
+```
 
 現在用你最熟悉的文字編輯器建立  YAML 檔案 (本文範例使用 nano)
-nano docker-compose.yml
+```sh
+~/hello-world$ nano docker-compose.yml
+```
 
+
+*docker-compose.yml:*
 
 拷貝以下文字，儲存檔案，離開文字編輯器
-my-test: image: hello-world
+{% highlight ruby %}
+my-test: 
+    image: hello-world
+{% endhighlight %}
 
-第一行代表container 名稱，第二行指定哪個 image 檔案要給此container用，本範例這個 image 會從 官方的Docker Hub 資源庫下載
+第一行代表container 名稱
+第二行指定哪個 image 檔案要給此container用
+本範例這個 image 會從 官方的Docker Hub 資源庫下載
 
-在 ~/hello-world 資料夾下，執行下面的指令建立 container:
+建立 container:
 
-docker-compose up
+```sh
+~/hello-world$ docker-compose up
+```
 
+成功的話，你會看到下面的訊息代表安裝成功
 
-成功的話，你會看到下面的訊息
-
+```sh
 Creating helloworld_my-test_1... Attaching to helloworld_my-test_1 my-test_1 | my-test_1 | Hello from Docker. my-test_1 | This message shows that your installation appears to be working correctly. my-test_1 |
+```
 
+離開 hello-world 資料夾
 
-有以上畫面代表安裝成功！
+```sh
+~/hello-world$ cd..
+```
 
+開始建立 wordpress Docker  
+------
 
-5.建立wordpress container需要的 docker-compose.yml 檔案
-mkdir wordpress
-
+建立資料夾
+```sh
+$ mkdir wordpress
+```
 
 進入資料夾
-cd wordpress
 
+```sh
+$ cd wordpress
+```
 
-一樣建立資料夾給我們的 YAML 檔案:
+建立 wordpress container 需要的 docker-compose.yml 檔案
+
+```sh
+~/wordpress$ nano docker-compose.yml
+```
+
+*docker-compose.yml*
+{% highlight ruby %}
 version: '2'
 services:
  web:
@@ -118,24 +169,31 @@ services:
 volumes:
  dbdata:
 
+{% endhighlight %}
 
-重要!!! 請記得把 password 替換成您自訂的安全密碼 !!!
 
+**重要! 請記得把 password 替換成您自訂的安全密碼!**
+
+{% highlight ruby %}
 - WORDPRESS_DB_PASSWORD=password Wordpress密碼
-
 - MYSQL_ROOT_PASSWORD=password 資料庫密碼
-
 - MYSQL_DATABASE=wordpress 資料庫名稱
+
 mysql:
  ports:
  - "3306:3306"
+{% endhighlight %}
 
-可自行決定要不要把port對外，對外會有安全性問題
+**可自行決定要不要把port對外，對外會有安全性問題**
 
+最後執行
+```
+$ docker-compose up -d
+```
 
+啟動Docker!
 
-6.最後執行
-docker-compose up -d
+可以連線到AWS對外網址
 
-大功告成 ! 你可以去你的AWS DNS名稱開始設定wordpress囉 !
+開始設定WORDPRESS囉!
 
